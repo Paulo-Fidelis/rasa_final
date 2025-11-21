@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFPE Bot - Assistente Virtual por Voz</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #2E7D32; 
+            --primary-hover: #1B5E20;
+            --accent-color: #C62828; 
+            --recording-color: #d32f2f;
+            --bg-color: #eceff1;
+            --card-bg: #ffffff;
+            --text-color: #37474f;
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background-image: radial-gradient(#cfd8dc 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 600px;
+            border-top: 5px solid var(--primary-color);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #78909c;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        /* Container para input e botão de microfone */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1; /* Ocupa o espaço restante */
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+            background-color: #fafafa;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            background-color: #fff;
+        }
+
+        .mic-btn {
+            width: 56px;
+            background-color: #e0e0e0;
+            color: #555;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-btn:hover {
+            background-color: #d5d5d5;
+        }
+
+    
+        .mic-btn.recording {
+            background-color: var(--recording-color);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+        }
+
+        /* Botão de Enviar */
+        .send-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .send-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+        }
+
+        .response {
+            background-color: #f1f8e9;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-top: 25px;
+            min-height: 80px;
+            border-left: 5px solid var(--primary-color);
+            color: #333;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            position: relative;
+        }
+
+        .response::before {
+            content: "IFPE Bot diz:";
+            display: block;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Controle de som (opcional) */
+        .sound-controls {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            text-align: right;
+            color: #78909c;
+        }
+        
+        [vw] { z-index: 9999 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IFPE Bot</h1>
+        <p class="subtitle">Fale ou digite sua pergunta</p>
+        
+        <div class="section">
+            <label for="prompt">Como posso ajudar você hoje?</label>
+            
+            <div class="input-group">
+                <input type="text" id="prompt" placeholder="Digite ou clique no microfone...">
+                <button class="mic-btn" id="micBtn" title="Falar pergunta">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
+            
+            <button class="send-btn" id="btnEnviar">Enviar Pergunta</button>
+            
+            <div class="sound-controls">
+                <label><input type="checkbox" id="voiceToggle" checked> Ler resposta em voz alta</label>
+            </div>
+
+            <div class="response" id="llmResponse">A resposta aparecerá aqui...</div>
+        </div>
+    </div>
+
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        const promptInput = document.getElementById('prompt');
+        const responseDiv = document.getElementById('llmResponse');
+        const micBtn = document.getElementById('micBtn');
+        const voiceToggle = document.getElementById('voiceToggle');
+
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR'; 
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                micBtn.classList.add('recording');
+                promptInput.placeholder = "Ouvindo... pode falar!";
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('recording');
+                promptInput.placeholder = "Digite ou clique no microfone...";
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                promptInput.value = transcript;
+              
+            };
+
+            micBtn.addEventListener('click', () => {
+                if (micBtn.classList.contains('recording')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+        } else {
+            micBtn.style.display = 'none'; 
+            console.log('Navegador não suporta reconhecimento de voz');
+        }
+
+        function speakText(text) {
+            if (!voiceToggle.checked) return; 
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.1; 
+            utterance.pitch = 1;
+            
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function getLLMResponse() {
+            if (!promptInput.value.trim()) {
+                responseDiv.textContent = 'Por favor, digite uma pergunta.';
+                return;
+            }
+            
+            responseDiv.textContent = 'Processando...';
+            responseDiv.style.opacity = '0.7';
+
+            try {
+          
+                await new Promise(r => setTimeout(r, 1000)); 
+                const botAnswer = "Olá! Sou o assistente virtual do IFPE. Entendi que você perguntou sobre '" + promptInput.value + "'. Como posso te ajudar mais?";
+       
+                responseDiv.textContent = botAnswer;
+                responseDiv.style.opacity = '1';
+                
+                speakText(botAnswer);
+
+            } catch (error) {
+                responseDiv.textContent = `Erro: ${error.message}`;
+                console.error('Erro:', error);
+            }
+        }
+
+        document.getElementById('btnEnviar').addEventListener('click', getLLMResponse);
+
+        promptInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                getLLMResponse();
+            }
+        });
+    </script>
+</body>
+</html>
