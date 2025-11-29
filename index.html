@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IFPE Bot - Assistente Virtual por Voz</title>
-    
+
+    <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -203,7 +204,7 @@
                 </button>
             </div>
             
-            <button class="send-btn" id="btnEnviar">Enviar Pergunta</button>
+            <button class="send-btn" id="btnEnviar" onclick="getLLMResponse()">Enviar Pergunta</button>
             
             <div class="sound-controls">
                 <label><input type="checkbox" id="voiceToggle" checked> Ler resposta em voz alta</label>
@@ -279,30 +280,48 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        async function getLLMResponse() {
-            if (!promptInput.value.trim()) {
-                responseDiv.textContent = 'Por favor, digite uma pergunta.';
-                return;
-            }
-            
-            responseDiv.textContent = 'Processando...';
-            responseDiv.style.opacity = '0.7';
+       async function getLLMResponse() {
+    const userMessage = promptInput.value.trim();
+    if (!userMessage) {
+        responseDiv.textContent = 'Por favor, digite uma pergunta.';
+        return;
+    }
 
-            try {
-          
-                await new Promise(r => setTimeout(r, 1000)); 
-                const botAnswer = "Olá! Sou o assistente virtual do IFPE. Entendi que você perguntou sobre '" + promptInput.value + "'. Como posso te ajudar mais?";
-       
-                responseDiv.textContent = botAnswer;
-                responseDiv.style.opacity = '1';
-                
-                speakText(botAnswer);
+    responseDiv.textContent = 'Processando...';
+    responseDiv.style.opacity = '0.7';
 
-            } catch (error) {
-                responseDiv.textContent = `Erro: ${error.message}`;
-                console.error('Erro:', error);
-            }
-        }
+    try {
+        // Enviando mensagem ao Rasa
+        const rasaResponse = await fetch("http://localhost:5005/webhooks/rest/webhook", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                sender: "usuario",
+                message: userMessage
+            })
+        });
+
+        const data = await rasaResponse.json();
+
+        // Rasa pode enviar várias mensagens
+        let botText = "";
+        data.forEach(msg => {
+            if (msg.text) botText += msg.text + " ";
+        });
+
+        if (!botText) botText = "Desculpe, não entendi sua pergunta.";
+
+        responseDiv.textContent = botText.trim();
+        responseDiv.style.opacity = '1';
+
+        speakText(botText);
+
+    } catch (error) {
+        responseDiv.textContent = `Erro ao conectar ao Rasa: ${error.message}`;
+        responseDiv.style.opacity = '1';
+        console.error('Erro:', error);
+    }
+}
 
         document.getElementById('btnEnviar').addEventListener('click', getLLMResponse);
 
