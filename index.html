@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,14 +10,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script type="importmap">
+        {
+            "imports": {"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 
     <style>
         :root {
-            --primary-color: #2E7D32; 
+            --primary-color: #2E7D32;
             --primary-hover: #1B5E20;
-            --accent-color: #C62828; 
+            --accent-color: #C62828;
             --recording-color: #d32f2f;
             --bg-color: #eceff1;
             --card-bg: #ffffff;
@@ -47,7 +56,7 @@
             background-color: var(--card-bg);
             border-radius: var(--border-radius);
             padding: 40px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
             width: 100%;
             max-width: 600px;
             border-top: 5px solid var(--primary-color);
@@ -87,7 +96,8 @@
         }
 
         input[type="text"] {
-            flex: 1; /* Ocupa o espaço restante */
+            flex: 1;
+            /* Ocupa o espaço restante */
             padding: 15px;
             border: 2px solid #e0e0e0;
             border-radius: var(--border-radius);
@@ -120,7 +130,7 @@
             background-color: #d5d5d5;
         }
 
-    
+
         .mic-btn.recording {
             background-color: var(--recording-color);
             color: white;
@@ -128,9 +138,17 @@
         }
 
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+            0% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+            }
         }
 
         /* Botão de Enviar */
@@ -169,7 +187,7 @@
         }
 
         .response::before {
-            content: "IFPE Bot diz:";
+            content: "Lucas:";
             display: block;
             font-weight: 600;
             font-size: 0.8rem;
@@ -185,28 +203,78 @@
             text-align: right;
             color: #78909c;
         }
-        
-        [vw] { z-index: 9999 !important; }
+
+        [vw] {
+            z-index: 9999 !important;
+        }
+
+        .pause-btn {
+            background-color: #ff9800;
+            /* Laranja para destaque */
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .pause-btn:hover {
+            background-color: #f57c00;
+            transform: scale(1.1);
+        }
+
+        .pause-btn.paused {
+            background-color: #2196f3;
+            /* Azul quando estiver pausado (pronto para play) */
+            animation: pulse-blue 2s infinite;
+        }
+
+        @keyframes pulse-blue {
+            0% {
+                box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>IFPE Bot</h1>
+        <h1>Lucas Assistente</h1>
+        <div id="avatar-container" style="width: 200px; height: 200px; margin: 0 auto; display: block;"></div>
         <p class="subtitle">Fale ou digite sua pergunta</p>
-        
+
         <div class="section">
             <label for="prompt">Como posso ajudar você hoje?</label>
-            
+
             <div class="input-group">
                 <input type="text" id="prompt" placeholder="Digite ou clique no microfone...">
                 <button class="mic-btn" id="micBtn" title="Falar pergunta">
                     <i class="fas fa-microphone"></i>
                 </button>
             </div>
-            
+
             <button class="send-btn" id="btnEnviar" onclick="getLLMResponse()">Enviar Pergunta</button>
-            
-            <div class="sound-controls">
+
+            <div class="sound-controls"
+                style="display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
+                <button id="pauseBtn" class="pause-btn" style="display: none;" title="Pausar/Retomar">
+                    <i class="fas fa-pause"></i>
+                </button>
+
                 <label><input type="checkbox" id="voiceToggle" checked> Ler resposta em voz alta</label>
             </div>
 
@@ -226,17 +294,44 @@
     </script>
 
     <script>
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseIcon = pauseBtn.querySelector('i');
         const API_BASE_URL = 'http://localhost:8000';
         const promptInput = document.getElementById('prompt');
         const responseDiv = document.getElementById('llmResponse');
         const micBtn = document.getElementById('micBtn');
         const voiceToggle = document.getElementById('voiceToggle');
 
+        pauseBtn.addEventListener('click', () => {
+            const synth = window.speechSynthesis;
+
+            if (synth.speaking && !synth.paused) {
+                // Se está falando, PAUSA
+                synth.pause();
+                pauseBtn.classList.add('paused');
+                pauseIcon.classList.remove('fa-pause');
+                pauseIcon.classList.add('fa-play');
+
+                // Se tiver o avatar 3D, para a boca
+                if (window.isAvatarSpeaking !== undefined) window.isAvatarSpeaking = false;
+
+            } else if (synth.paused) {
+                // Se está pausado, RETOMA
+                synth.resume();
+                pauseBtn.classList.remove('paused');
+                pauseIcon.classList.remove('fa-play');
+                pauseIcon.classList.add('fa-pause');
+
+                // Se tiver o avatar 3D, volta a mexer a boca
+                if (window.isAvatarSpeaking !== undefined) window.isAvatarSpeaking = true;
+            }
+        });
+
         let recognition = null;
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
-            recognition.lang = 'pt-BR'; 
+            recognition.lang = 'pt-BR';
             recognition.continuous = false;
             recognition.interimResults = false;
 
@@ -253,7 +348,7 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 promptInput.value = transcript;
-              
+
             };
 
             micBtn.addEventListener('click', () => {
@@ -264,64 +359,90 @@
                 }
             });
         } else {
-            micBtn.style.display = 'none'; 
+            micBtn.style.display = 'none';
             console.log('Navegador não suporta reconhecimento de voz');
         }
 
         function speakText(text) {
-            if (!voiceToggle.checked) return; 
+            if (!voiceToggle.checked) return;
+
+            // Cancela qualquer fala anterior
             window.speechSynthesis.cancel();
+
+            // Reseta o botão para o estado inicial (escondido)
+            pauseBtn.style.display = 'none';
+            pauseBtn.classList.remove('paused');
+            pauseIcon.classList.remove('fa-play');
+            pauseIcon.classList.add('fa-pause');
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'pt-BR';
-            utterance.rate = 1.1; 
-            utterance.pitch = 1;
-            
+            utterance.rate = 1.8; // Mantive sua velocidade rápida
+            utterance.pitch = 1.3;
+
+            // Quando começar a falar
+            utterance.onstart = () => {
+                pauseBtn.style.display = 'flex'; // Mostra o botão
+                if (window.isAvatarSpeaking !== undefined) window.isAvatarSpeaking = true;
+            };
+
+            // Quando terminar de falar
+            utterance.onend = () => {
+                pauseBtn.style.display = 'none'; // Esconde o botão
+                if (window.isAvatarSpeaking !== undefined) window.isAvatarSpeaking = false;
+            };
+
+            // Tratamento de erro
+            utterance.onerror = () => {
+                pauseBtn.style.display = 'none';
+                if (window.isAvatarSpeaking !== undefined) window.isAvatarSpeaking = false;
+            };
+
             window.speechSynthesis.speak(utterance);
         }
 
-       async function getLLMResponse() {
-    const userMessage = promptInput.value.trim();
-    if (!userMessage) {
-        responseDiv.textContent = 'Por favor, digite uma pergunta.';
-        return;
-    }
+        async function getLLMResponse() {
+            const userMessage = promptInput.value.trim();
+            if (!userMessage) {
+                responseDiv.textContent = 'Por favor, digite uma pergunta.';
+                return;
+            }
 
-    responseDiv.textContent = 'Processando...';
-    responseDiv.style.opacity = '0.7';
+            responseDiv.textContent = 'Processando...';
+            responseDiv.style.opacity = '0.7';
 
-    try {
-        // Enviando mensagem ao Rasa
-        const rasaResponse = await fetch("http://localhost:5005/webhooks/rest/webhook", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                sender: "usuario",
-                message: userMessage
-            })
-        });
+            try {
+                // Enviando mensagem ao Rasa
+                const rasaResponse = await fetch("http://localhost:5005/webhooks/rest/webhook", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sender: "usuario",
+                        message: userMessage
+                    })
+                });
 
-        const data = await rasaResponse.json();
+                const data = await rasaResponse.json();
 
-        // Rasa pode enviar várias mensagens
-        let botText = "";
-        data.forEach(msg => {
-            if (msg.text) botText += msg.text + " ";
-        });
+                // Rasa pode enviar várias mensagens
+                let botText = "";
+                data.forEach(msg => {
+                    if (msg.text) botText += msg.text + " ";
+                });
 
-        if (!botText) botText = "Desculpe, não entendi sua pergunta.";
+                if (!botText) botText = "Desculpe, não entendi sua pergunta.";
 
-        responseDiv.textContent = botText.trim();
-        responseDiv.style.opacity = '1';
+                responseDiv.textContent = botText.trim();
+                responseDiv.style.opacity = '1';
 
-        speakText(botText);
+                speakText(botText);
 
-    } catch (error) {
-        responseDiv.textContent = `Erro ao conectar ao Rasa: ${error.message}`;
-        responseDiv.style.opacity = '1';
-        console.error('Erro:', error);
-    }
-}
+            } catch (error) {
+                responseDiv.textContent = `Erro ao conectar ao Rasa: ${error.message}`;
+                responseDiv.style.opacity = '1';
+                console.error('Erro:', error);
+            }
+        }
 
         document.getElementById('btnEnviar').addEventListener('click', getLLMResponse);
 
@@ -331,5 +452,104 @@
             }
         });
     </script>
+
+    <script type="module">
+
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        window.isAvatarSpeaking = false;
+        // 1. Configuração da Cena
+        const container = document.getElementById('avatar-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xeceff1);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(0, 1.7, 0.6); // Foco no rosto
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(200, 200);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        if (container) {
+            container.innerHTML = ''; // Garante que não duplica o canvas
+            container.appendChild(renderer.domElement);
+        }
+
+        const light = new THREE.HemisphereLight(0xffffff, 0x444444, 3.0);
+        scene.add(light);
+
+        // 2. Variáveis de Controle
+        // Vamos guardar uma LISTA de objetos para animar (caso rosto e dentes sejam separados)
+        let meshesToAnimate = [];
+
+        // Lista de prioridade: mouthSmile primeiro, pois confirmamos que funciona no seu modelo
+        const possibleTargets = ['mouthOpen', 'jawOpen', 'viseme_aa', 'open'];
+
+        // 3. Carregar o Avatar
+        const loader = new GLTFLoader();
+        loader.load('./lucas_assistente.glb', function (gltf) {
+            const model = gltf.scene;
+            scene.add(model);
+
+            console.log("--- CONFIGURANDO LIP-SYNC ---");
+
+            model.traverse((node) => {
+                if (node.isMesh && node.morphTargetDictionary) {
+                    // Procura por qualquer um dos nomes da lista
+                    for (let target of possibleTargets) {
+                        if (node.morphTargetDictionary[target] !== undefined) {
+                            const idx = node.morphTargetDictionary[target];
+
+                            // Adiciona na lista de animação
+                            meshesToAnimate.push({
+                                mesh: node,
+                                index: idx,
+                                name: target
+                            });
+
+                            console.log(`Conectado: ${node.name} usando morph "${target}"`);
+                            // Não damos break aqui porque queremos achar dentes/língua também se houver
+                        }
+                    }
+                }
+            });
+
+        }, undefined, function (error) {
+            console.error('Erro ao carregar model.glb:', error);
+        });
+
+        // 4. Loop de Animação (Definitivo)
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Valor padrão (boca fechada)
+            let targetValue = 0;
+
+            // Se a variável global indicar que está falando:
+            if (window.isAvatarSpeaking === true) {
+                // Cria a oscilação da fala (Senoide + Aleatório)
+                const time = Date.now() * 0.02;
+                const noise = Math.random() * 0.3;
+                const sineWave = (Math.sin(time) + 1) * 0.35;
+
+                targetValue = sineWave + noise;
+                if (targetValue > 1) targetValue = 1;
+            }
+
+            // Aplica o movimento em TODAS as partes encontradas (rosto, dentes, etc)
+            if (meshesToAnimate.length > 0) {
+                meshesToAnimate.forEach(item => {
+                    // Suavização (Lerp) para o movimento não ficar travado
+                    const current = item.mesh.morphTargetInfluences[item.index];
+                    item.mesh.morphTargetInfluences[item.index] = THREE.MathUtils.lerp(current, targetValue, 0.2);
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
 </body>
+
 </html>
